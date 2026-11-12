@@ -52,7 +52,7 @@
 
 | Prioridad | Funcionalidad | Origen | Impacto / esfuerzo |
 |---|---|---|---|
-| P1 | **Simulador de objeciones en vivo**: el CEO responde con la objeción probable y el jugador contesta 2–3 turnos (validar → aislar → reencuadrar → avanzar) | Copy + Estrategia | Alto / medio |
+| ✅ | **Simulador de objeciones en vivo** — implementado (ver §4) | Copy + Estrategia | Alto / medio |
 | P1 | **Reescribe y compara**: reescribir solo las frases marcadas y ver el delta por criterio | Copy | Alto / bajo |
 | P1 | **Auditoría de perfil**: pegar la bio y 3 publicaciones de un dueño y recibir diagnóstico de autoridad | Redes | Alto / bajo |
 | P1 | **Hook Duel**: 5 hooks contra reloj, puntuados por la IA | Redes | Alto / bajo |
@@ -66,3 +66,22 @@
 | P3 | Persistencia de la partida del jugador y proxy/backend para no exponer la clave de IA en el cliente | Técnico | Alto / medio |
 
 Las especificaciones completas de cada especialista están en `docs/especialistas/`.
+
+## 4. Simulador de objeciones en vivo (implementado)
+
+**Cómo se juega.** El CEO lanza una objeción y el closer responde hasta **3 veces**. Cada respuesta se puntúa de 0 a 25 en cuatro etapas, de 0 a 100 en total:
+
+1. **Validar:** empatizar sin darle la razón al miedo.
+2. **Aislar:** confirmar que es la única traba.
+3. **Reencuadrar:** costo de no actuar, inversión frente a gasto, prueba o garantía.
+4. **Avanzar:** cerrar con una pregunta que proponga un siguiente paso concreto.
+
+**Resistencia del CEO.** Empieza en 60, 70, 80 o 90 según la dificultad del lead, y cada turno cambia en `-(nota - 35) × 0,8`. El trato se gana si la resistencia baja de 25. Se pierde si llega a 100 o se acaban los turnos. El resultado se calcula en `src/game/objections.js`, no lo decide la IA. La IA solo puntúa y redacta las dos réplicas posibles del CEO: una si se convence y otra si sigue resistiendo. Sin IA, un evaluador local puntúa por patrones: empatía, aislamiento, datos, pregunta final y penalización por tono defensivo.
+
+| Entrada | Dónde | Costo | Recompensa |
+|---|---|---|---|
+| **Rescatar el trato** | Tras una propuesta que no cerró (SKEPTICAL u OBJECTION); usa la objeción probable de la evaluación | 2 ⚡ | XP; si gana, el cliente entra al Holding con 70% de satisfacción |
+| **Practicar su objeción** | Tras una propuesta que sí cerró | 2 ⚡ | XP |
+| **Entrenar objeciones** | Analizador de Negocio; se elige entre las objeciones reales del análisis y las genéricas (precio, tiempo, confianza, necesidad, autoridad, competencia) | Gratis | XP |
+
+XP de la sesión: suma de las notas / 10, más 20 si se gana. Si el CEO deja en visto (GHOSTED), no hay objeción que responder.

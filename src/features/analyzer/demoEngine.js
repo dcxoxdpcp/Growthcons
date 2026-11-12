@@ -219,6 +219,13 @@ const COUNTRIES = [
 
 const PLATFORM_RE = { instagram: /instagram|\big\b/i, tiktok: /tiktok/i, linkedin: /linkedin/i, youtube: /youtube/i, whatsapp: /whatsapp/i, facebook: /facebook/i, newsletter: /newsletter|email|correo/i };
 
+/** Primera frase del texto, cortada en un límite de palabra (máx. ~48 caracteres). */
+function shortTitle(text) {
+  const first = text.trim().split(/[.,;:\n]/)[0];
+  if (first.length <= 48) return first;
+  return first.slice(0, 48).replace(/\s+\S*$/, '') + '…';
+}
+
 const round = (n) => (n >= 100 ? Math.round(n / 10) * 10 : Math.round(n));
 
 export function extractSignals(text) {
@@ -264,7 +271,7 @@ function buildEstrategia(text, s) {
     diagnostico: {
       resumen: `${a.industria}${lugar ? ` en ${lugar}` : ''}${s.branches > 1 ? ` con ${s.branches} puntos de venta` : ''}${s.followers ? ` y ~${s.followers.toLocaleString('es')} seguidores` : ''}. Diagnóstico generado con plantillas locales (modo demo): valida los números en la llamada de descubrimiento.`,
       industria: a.industria,
-      subnicho: text.trim().split(/[.,\n]/)[0].slice(0, 60),
+      subnicho: shortTitle(text),
       niche_id_match: a.niche,
       modelo_negocio: a.modelo,
       modelo_ingresos: a.ingresos,

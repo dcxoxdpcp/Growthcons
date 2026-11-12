@@ -9,6 +9,8 @@ import {
 import { NICHES, FRAMEWORKS, FRAMEWORK_DEFINITIONS, FRAMEWORK_PLACEHOLDERS } from './game/constants.js';
 import { evaluateProposal, optimizeProposal, SUCCESS_THRESHOLD } from './game/evaluation.js';
 import AnalyzerView from './features/analyzer/AnalyzerView.jsx';
+import ObjectionSimulator from './game/ObjectionSimulator.jsx';
+import { pickInitialObjection } from './game/objections.js';
 
 // --- CONFIGURACIÓN Y CONSTANTES ---
 
@@ -144,6 +146,7 @@ export default function App() {
   const [dailyEvent, setDailyEvent] = useState(null);
   const [tutorialStep, setTutorialStep] = useState(-1);
   const [showFrameworkHelp, setShowFrameworkHelp] = useState(false);
+  const [objectionSession, setObjectionSession] = useState(null);
 
   useEffect(() => {
     const handleError = (e) => { console.error("Error capturado:", e); setHasError(true); };
@@ -178,6 +181,48 @@ export default function App() {
     setOptimizedProposal(null);
     setView('terminal');
     addLog(`Simulación con negocio analizado: ${lead.nicheName}.`);
+  };
+
+  // --- SIMULADOR DE OBJECIONES ---
+  const OBJECTION_COST = 2;
+
+  const startObjectionSim = () => {
+    if (player.energy < OBJECTION_COST) return addLog('Energía insuficiente para la objeción.');
+    setPlayer(prev => ({ ...prev, energy: prev.energy - OBJECTION_COST }));
+    setObjectionSession({
+      lead: { ...currentLead, alreadyClosed: !!aiFeedback?.success },
+      objection: pickInitialObjection(currentLead, aiFeedback),
+      context: 'game',
+    });
+    setView('objections');
+  };
+
+  const trainObjections = (lead) => {
+    setObjectionSession({ lead, objection: null, context: 'training' });
+    setView('objections');
+  };
+
+  const finishObjectionSim = ({ won, xp }) => {
+    const { lead, context } = objectionSession;
+    const rescued = context === 'game' && won && !lead.alreadyClosed;
+    setPlayer(prev => ({
+      ...prev,
+      xp: prev.xp + xp,
+      clients: rescued
+        ? [...prev.clients, { ...lead, id: Date.now(), monthly: lead.monthly || 250, satisfaction: 70, equity: 0, nicheName: lead.nicheName }]
+        : prev.clients,
+    }));
+    addLog(won
+      ? `Objeción superada (+${xp} XP)${rescued ? ` — ¡Trato rescatado: ${lead.nicheName}!` : '.'}`
+      : `El CEO no se convenció (+${xp} XP). Revisa tus etapas más débiles.`);
+  };
+
+  const exitObjectionSim = () => {
+    const fromAnalysis = objectionSession?.context === 'training' || objectionSession?.lead?.fromAnalysis;
+    setObjectionSession(null);
+    setAiFeedback(null);
+    setOptimizedProposal(null);
+    setView(fromAnalysis ? 'analyzer' : 'dashboard');
   };
 
   const leaveTerminal = () => {
@@ -464,7 +509,18 @@ export default function App() {
       )}
 
       {view === 'analyzer' && (
-        <AnalyzerView onBack={() => setView(player.niche ? 'dashboard' : 'onboarding')} onPractice={practiceAnalyzedLead} />
+        <AnalyzerView onBack={() => setView(player.niche ? 'dashboard' : 'onboarding')} onPractice={practiceAnalyzedLead} onTrainObjections={trainObjections} />
+      )}
+
+      {view === 'objections' && objectionSession && (
+        <ObjectionSimulator
+          key={`${objectionSession.lead.id}-${objectionSession.context}`}
+          lead={objectionSession.lead}
+          initialObjection={objectionSession.objection}
+          context={objectionSession.context}
+          onFinish={finishObjectionSim}
+          onExit={exitObjectionSim}
+        />
       )}
 
       {view === 'terminal' && (
@@ -540,6 +596,12 @@ export default function App() {
                   <FeedbackDetails feedback={aiFeedback} />
                   {!optimizedProposal ? <button onClick={fetchOptimizedProposal} disabled={isOptimizing} className="w-full py-6 bg-slate-800 border border-slate-700 rounded-3xl text-white font-black text-[10px] uppercase tracking-[0.4em] flex items-center justify-center gap-4 hover:bg-slate-700 transition-all shadow-xl">{isOptimizing ? <RefreshCw className="animate-spin" size={20}/> : <><Sparkles size={20} className="text-yellow-400" /> Ver Propuesta de Titán</>}</button> : <div className="mt-6 p-10 bg-amber-500/5 border border-amber-500/20 rounded-[3rem] text-amber-100 text-base italic whitespace-pre-wrap shadow-2xl leading-relaxed animate-in slide-in-from-top-4"><p className="text-[10px] text-amber-500 font-black uppercase mb-6 tracking-[0.5em]">Optimización de Magnate:</p>{optimizedProposal}</div>}
                 </div>
+                {aiFeedback.reaction !== 'GHOSTED' && (
+                  <button onClick={startObjectionSim} disabled={player.energy < OBJECTION_COST} className="w-full bg-amber-500 hover:bg-amber-400 disabled:opacity-30 text-black p-6 rounded-[2.5rem] font-black uppercase tracking-[0.4em] transition-all text-xs flex items-center justify-center gap-3">
+                    <Swords size={18} /> {aiFeedback.success ? 'Practicar su objeción' : 'Rescatar el trato: responder su objeción'} (-{OBJECTION_COST}⚡)
+                  </button>
+                )}
+                {aiFeedback.reaction === 'GHOSTED' && <p className="text-center text-xs text-slate-500">El CEO te dejó en visto: no hay objeción que responder.</p>}
                 <button onClick={leaveTerminal} className="w-full bg-white text-black p-8 rounded-[2.5rem] font-black uppercase tracking-[0.6em] hover:bg-slate-200 transition-all text-xs text-center">Avanzar</button>
               </div>
             )}

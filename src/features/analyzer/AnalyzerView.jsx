@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   ChevronRight, Sparkles, RefreshCw, Copy, Check, Download, History, Trash2, Swords,
-  Target, Brain, MessageSquare, Megaphone, AlertCircle, FlaskConical, Wand2,
+  Target, Brain, MessageSquare, Megaphone, AlertCircle, FlaskConical, Wand2, ShieldAlert,
 } from 'lucide-react';
 import { SECTIONS } from './prompts.js';
 import { runAnalysis, generateSection, analysisToLead } from './analyzer.js';
@@ -380,7 +380,7 @@ const RENDERERS = { estrategia: EstrategiaSection, narrativa: NarrativaSection, 
 
 // ---------- Vista principal ----------
 
-export default function AnalyzerView({ onBack, onPractice }) {
+export default function AnalyzerView({ onBack, onPractice, onTrainObjections }) {
   const [description, setDescription] = useState('');
   const [mode, setMode] = useState('ia');
   const [analysis, setAnalysis] = useState(null);
@@ -535,6 +535,7 @@ export default function AnalyzerView({ onBack, onPractice }) {
               </div>
               <div className="flex flex-wrap lg:flex-col gap-3 lg:w-64">
                 <button onClick={() => onPractice(analysisToLead(analysis))} disabled={!complete} className="flex-1 px-6 py-4 bg-white text-black rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-30"><Swords size={16} /> Practicar el cierre</button>
+                <button onClick={() => onTrainObjections(analysisToLead(analysis))} disabled={!complete} className="flex-1 px-6 py-4 bg-amber-500 text-black rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-30"><ShieldAlert size={16} /> Entrenar objeciones</button>
                 <button onClick={() => copyToClipboard(analysisToMarkdown(analysis))} disabled={!complete} className="flex-1 px-6 py-4 bg-slate-800 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-30"><Copy size={16} /> Copiar todo</button>
                 <button onClick={() => downloadText(`propuesta-${analysis.id}.md`, analysisToMarkdown(analysis))} disabled={!complete} className="flex-1 px-6 py-4 bg-slate-800 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-30"><Download size={16} /> Exportar .md</button>
               </div>
