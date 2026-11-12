@@ -4,90 +4,25 @@ import {
   Briefcase, ChevronRight, AlertCircle, Trophy, Coffee, CheckCircle, RefreshCw, 
   Sparkles, ArrowRight, Skull, Star, Users, ShieldAlert, UserPlus, Coins, 
   PieChart, Megaphone, Globe, Crown, Building2, Rocket, Target, BarChart3, HelpCircle, X,
-  Info
+  Info, Wand2, Swords
 } from 'lucide-react';
+import { NICHES, FRAMEWORKS, FRAMEWORK_DEFINITIONS, FRAMEWORK_PLACEHOLDERS } from './game/constants.js';
+import { evaluateProposal, optimizeProposal, SUCCESS_THRESHOLD } from './game/evaluation.js';
+import AnalyzerView from './features/analyzer/AnalyzerView.jsx';
 
 // --- CONFIGURACIÓN Y CONSTANTES ---
-const API_KEY = ""; 
-const MODEL_NAME = "gemini-2.5-flash-preview-09-2025";
-
-const NICHES = [
-  { id: 'infopro', name: 'Infoproductor', icon: '🎓', difficulty: 'Baja', 
-    intel: { revenue: '$20k-$50k/mo', employees: '2-5', tech: 'Kajabi, Meta Ads' },
-    pains: ['Burnout de Marca: El dueño no puede dejar de publicar.', 'Baja Tasa de Finalización: Alumnos no terminan el curso.', 'CAC Insostenible en Meta Ads.'] },
-  { id: 'ecommerce', name: 'E-commerce Streetwear', icon: '👕', difficulty: 'Media', 
-    intel: { revenue: '$10k-$30k/mo', employees: '1-3', tech: 'Shopify, Klaviyo' },
-    pains: ['Trampa del Inventario: Capital bloqueado en stock muerto.', 'Guerra de Descuentos: Márgenes destruidos.', 'Logística de Pesadilla: 15% de devoluciones.'] },
-  { id: 'clinic', name: 'Clínica Estética', icon: '🦷', difficulty: 'Media', 
-    intel: { revenue: '$40k-$80k/mo', employees: '5-10', tech: 'WhatsApp Business, CRM Local' },
-    pains: ['Cáncer del No-Show: Pacientes no asisten a citas.', 'Leads de Solo Precio en WhatsApp.', 'Incapacidad de delegar la venta.'] },
-  { id: 'b2b', name: 'Consultoría B2B', icon: '🏢', difficulty: 'Alta', 
-    intel: { revenue: '$50k-$150k/mo', employees: '10-20', tech: 'LinkedIn Sales Nav, Salesforce' },
-    pains: ['Ciclos de venta de 6 meses.', 'Commodity B2B: Comparación solo por precio.', 'El Gatekeeper Infranqueable.'] },
-  { id: 'ai_agency', name: 'Agencia de IA', icon: '🤖', difficulty: 'Alta', 
-    intel: { revenue: '$5k-$15k/mo', employees: '1-2', tech: 'Make, OpenAI API' },
-    pains: ['Miedo a la complejidad tecnológica.', 'Falta de casos de uso reales.', 'Resistencia del equipo del cliente.'] },
-  { id: 'real_estate', name: 'Real Estate Luxury', icon: '🏰', difficulty: 'Alta', 
-    intel: { revenue: '$100k-$500k/mo', employees: '15-30', tech: 'Custom CRM, Zillow' },
-    pains: ['Turismo Inmobiliario: Leads sin dinero.', 'Propiedades quemadas en el mercado.', 'Falta de exclusivas con dueños.'] },
-  { id: 'microsaas', name: 'Micro-SaaS B2B', icon: '💻', difficulty: 'Experto', 
-    intel: { revenue: '$2k-$10k/mo', employees: '1-2', tech: 'AWS, Stripe' },
-    pains: ['Churn altísimo por falla de onboarding.', 'Deuda técnica que frena la venta.', 'Ventas artesanales no escalables.'] },
-  { id: 'creators', name: 'Marcas Personales', icon: '🤳', difficulty: 'Media', 
-    intel: { revenue: '$5k-$100k/mo', employees: '1-5', tech: 'YouTube, Patreon' },
-    pains: ['Esclavitud del algoritmo.', 'Audiencia masiva pero sin dinero.', 'Cero propiedad de los datos (emails).'] },
-  { id: 'wellness', name: 'Wellness Corp', icon: '🧘', difficulty: 'Alta', 
-    intel: { revenue: '$10k-$40k/mo', employees: '3-8', tech: 'Zoom, Teachable' },
-    pains: ['Dificultad para medir ROI de salud mental.', 'Estigma de "debilidad" en directivos.', 'RRHH sin presupuesto asignado.'] },
-  { id: 'renewables', name: 'Energía Solar', icon: '☀️', difficulty: 'Alta', 
-    intel: { revenue: '$100k-$1M/mo', employees: '20-50', tech: 'ERP Industrial, CAD' },
-    pains: ['Desconfianza por estafas previas.', 'Burocracia de subvenciones de 12 meses.', 'Falta de opciones de financiación.'] }
-];
-
-const FRAMEWORKS = [
-  { id: 'pas', name: 'PAS', desc: 'Problema, Agitación, Solución. Ataca el dolor directo.' },
-  { id: 'aida', name: 'AIDA', desc: 'Atención, Interés, Deseo, Acción. Para conversión.' },
-  { id: 'fab', name: 'FAB', desc: 'Features, Advantages, Benefits. Centrado en el producto.' }
-];
-
-const FRAMEWORK_DEFINITIONS = {
-  pas: {
-    title: "Framework PAS (El más efectivo para dolores agudos)",
-    steps: [
-      { key: "Problema", val: "Identifica el problema principal del cliente claramente." },
-      { key: "Agitación", val: "Haz que el cliente sienta las consecuencias de no resolverlo hoy." },
-      { key: "Solución", val: "Presenta tu servicio como la medicina específica para ese dolor." }
-    ]
-  },
-  aida: {
-    title: "Framework AIDA (Clásico de marketing de respuesta directa)",
-    steps: [
-      { key: "Atención", val: "Capta el interés con un gancho (hook) disruptivo." },
-      { key: "Interés", val: "Muestra datos o insights que mantengan la curiosidad." },
-      { key: "Deseo", val: "Explica cómo cambiará su vida/negocio con tu ayuda." },
-      { key: "Acción", val: "Una llamada a la acción clara y de baja fricción." }
-    ]
-  },
-  fab: {
-    title: "Framework FAB (Ideal para venta de software o sistemas)",
-    steps: [
-      { key: "Features", val: "Características técnicas de lo que haces." },
-      { key: "Advantages", val: "Por qué esas características son mejores que el resto." },
-      { key: "Benefits", val: "El resultado final tangible que el cliente obtendrá." }
-    ]
-  }
-};
 
 const TUTORIAL_STEPS = [
   { id: 'welcome', title: 'Bienvenido, Operador', content: 'Tu objetivo es escalar negocios reales usando marketing y sistemas. De cero a un imperio.', target: 'none' },
   { id: 'stats', title: 'Recursos Críticos', content: 'La ⚡ Energía limita tus acciones diarias. El 💰 Capital es tu éxito. La 🧠 Autoridad desbloquea tratos de élite.', target: 'stats' },
   { id: 'sales', title: 'El Motor de Ventas', content: 'Usa "Sales" para encontrar leads. Deberás atacar el dolor raíz usando frameworks profesionales.', target: 'sales' },
+  { id: 'analyzer', title: 'Analizador de Negocio', content: 'Describe cualquier negocio real y el equipo Logos armará la propuesta completa: diagnóstico, oferta, narrativa, copy y marca personal. Luego practica el cierre con ese mismo negocio.', target: 'analyzer' },
   { id: 'holding', title: 'Gestión de Holding', content: 'Aquí verás tus clientes. Si no los operas, su satisfacción bajará y perderás el contrato.', target: 'holding' },
   { id: 'cycle', title: 'El Ciclo Diario', content: 'Cuando agotes tu energía, cierra el ciclo para cobrar retainers y dividendos.', target: 'coffee' }
 ];
 
 const INITIAL_SKILLS = [
-  { id: 'hook', name: 'Copywriting Pro', branch: 'Ventas', cost: 100, level: 0, max: 10, description: 'Mejora la respuesta inicial.' },
+  { id: 'hook', name: 'Copywriting Pro', branch: 'Ventas', cost: 100, level: 0, max: 10, description: 'Bonus de +2 puntos por nivel en la nota de tus propuestas.' },
   { id: 'branding', name: 'Autoridad de Marca', branch: 'Inbound', cost: 500, level: 0, max: 10, description: 'Genera leads automáticos.' },
   { id: 'negotiation', name: 'Negociación Equity', branch: 'Venture', cost: 1000, level: 0, max: 10, description: 'Aumenta dividendos de participaciones.' },
   { id: 'saas_logic', name: 'Arquitectura SaaS', branch: 'Empire', cost: 5000, level: 0, max: 10, description: 'Escala ingresos por software.' }
@@ -143,6 +78,50 @@ const NavBtn = ({ icon, label, onClick, disabled, badge, color, id }) => {
   );
 };
 
+// Desglose de la rúbrica: criterios, pasos del framework, clichés y reescrituras sugeridas.
+const FeedbackDetails = ({ feedback }) => {
+  const { criterios = [], pasos = [], cliches_detectados = [], reescrituras = [], story_score, story_tip, siguiente_ejercicio, objecion_probable } = feedback || {};
+  if (!criterios.length && !reescrituras.length) return null;
+  return (
+    <div className="space-y-8 mb-10">
+      {criterios.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-blue-400 font-black uppercase tracking-[0.4em] text-[10px]">Rúbrica</p>
+          {criterios.map((c, i) => (
+            <div key={i}>
+              <div className="flex justify-between text-[11px] text-slate-400"><span className="uppercase font-black tracking-widest">{c.id}</span><span>{c.puntos}/{c.max}</span></div>
+              <div className="h-2 bg-slate-800 rounded-full overflow-hidden"><div className={`h-full ${c.puntos / c.max >= 0.7 ? 'bg-green-500' : c.puntos / c.max >= 0.4 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${Math.min(100, (c.puntos / (c.max || 1)) * 100)}%` }} /></div>
+              {c.justificacion && <p className="text-[11px] text-slate-500 mt-1">{c.justificacion}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+      {pasos.some(p => p.score != null) && (
+        <div className="space-y-2">
+          <p className="text-blue-400 font-black uppercase tracking-[0.4em] text-[10px]">Pasos del framework</p>
+          {pasos.map((p, i) => <p key={i} className="text-sm text-slate-400"><span className={p.presente ? 'text-green-400' : 'text-red-400'}>{p.presente ? '✓' : '✗'}</span> <b className="text-white">{p.paso}</b>{p.score != null && ` (${p.score}/10)`} — {p.comentario}</p>)}
+        </div>
+      )}
+      {cliches_detectados.length > 0 && <p className="text-sm text-red-400">Clichés detectados: {cliches_detectados.map(c => `“${c}”`).join(', ')}</p>}
+      {reescrituras.length > 0 && (
+        <div className="space-y-3">
+          <p className="text-blue-400 font-black uppercase tracking-[0.4em] text-[10px]">Reescribe estas frases</p>
+          {reescrituras.map((r, i) => (
+            <div key={i} className="p-4 rounded-2xl bg-black/60 text-sm space-y-1">
+              <p className="text-red-300 line-through">{r.original}</p>
+              <p className="text-green-300">{r.sugerencia}</p>
+              <p className="text-[11px] text-slate-500">{r.problema}</p>
+            </div>
+          ))}
+        </div>
+      )}
+      {story_score != null && <p className="text-sm text-slate-400"><b className="text-purple-400">Storytelling {story_score}/100.</b> {story_tip}</p>}
+      {objecion_probable && <p className="text-sm text-slate-400"><b className="text-amber-400">Objeción probable:</b> {objecion_probable}</p>}
+      {siguiente_ejercicio && <p className="text-sm text-slate-400"><b className="text-blue-400">Siguiente ejercicio:</b> {siguiente_ejercicio}</p>}
+    </div>
+  );
+};
+
 // --- COMPONENTE PRINCIPAL ---
 export default function App() {
   const [hasError, setHasError] = useState(false);
@@ -174,27 +153,12 @@ export default function App() {
 
   const addLog = (msg) => setLogs(prev => [msg, ...prev.slice(0, 5)]);
 
-  // Lógica de IA para Evaluación Didáctica
+  // --- IA: evaluación y optimización (src/game/evaluation.js) ---
   const fetchAIEvaluation = async (message, lead, frameworkId) => {
     setIsTyping(true);
-    const framework = FRAMEWORKS.find(f => f.id === frameworkId);
-    const systemPrompt = `Eres un Tutor Senior de Growth. Evalúa esta propuesta para un CEO del nicho ${lead?.nicheName} con el dolor: "${lead?.activePain}".
-    DEBES verificar si cumple el framework: ${framework?.name}.
-    Responde ÚNICAMENTE JSON: { "score": 1-100, "reaction": "STOKED"|"GHOSTED"..., "client_reply": "...", "feedback": "ANÁLISIS PASO A PASO.", "xp_gained": 25 }`;
-
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: `Framework: ${framework?.name}\nMensaje: "${message}"` }] }],
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          generationConfig: { responseMimeType: "application/json" }
-        })
-      });
-      const data = await response.json();
-      return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text || "{}");
-    } catch (e) {
-      return { score: 65, reaction: 'INTERESTED', client_reply: "Hablemos pronto.", feedback: "Error de IA, pero vas bien.", xp_gained: 15 };
+      const copyLevel = player.skills.find(s => s.id === 'hook')?.level || 0;
+      return await evaluateProposal(message, lead, frameworkId, { copyLevel });
     } finally { setIsTyping(false); }
   };
 
@@ -202,16 +166,24 @@ export default function App() {
     if (isOptimizing) return;
     setIsOptimizing(true);
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${API_KEY}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: `Optimiza este mensaje usando ${selectedFramework.toUpperCase()} para el nicho ${currentLead?.nicheName}: "${historyMsg}"` }] }],
-          systemInstruction: { parts: [{ text: "Eres un Senior Growth Operator. Crea una propuesta de alto nivel atacando el dolor profundo. Solo el texto." }] }
-        })
-      });
-      const data = await response.json();
-      setOptimizedProposal(data.candidates?.[0]?.content?.parts?.[0]?.text);
-    } catch (e) { setOptimizedProposal("Error al optimizar."); } finally { setIsOptimizing(false); }
+      setOptimizedProposal(await optimizeProposal(historyMsg, currentLead, selectedFramework, aiFeedback));
+    } finally { setIsOptimizing(false); }
+  };
+
+  const practiceAnalyzedLead = (lead) => {
+    setCurrentLead(lead);
+    const fw = lead.brief?.framework_recomendado;
+    if (FRAMEWORKS.some(f => f.id === fw)) setSelectedFramework(fw);
+    setAiFeedback(null);
+    setOptimizedProposal(null);
+    setView('terminal');
+    addLog(`Simulación con negocio analizado: ${lead.nicheName}.`);
+  };
+
+  const leaveTerminal = () => {
+    setView(currentLead?.fromAnalysis ? 'analyzer' : 'dashboard');
+    setAiFeedback(null);
+    setOptimizedProposal(null);
   };
 
   // --- MECÁNICAS ---
@@ -229,14 +201,17 @@ export default function App() {
     setHistoryMsg(msg);
     setOutreachMsg("");
     const res = await fetchAIEvaluation(msg, currentLead, selectedFramework);
-    setAiFeedback(res);
-    
+    // Skill "Copywriting Pro": +2 puntos por nivel sobre la nota final.
+    const copyBonus = (player.skills.find(s => s.id === 'hook')?.level || 0) * 2;
+    const finalScore = Math.min(100, (res?.score || 0) + copyBonus);
+    const success = finalScore >= SUCCESS_THRESHOLD;
+    setAiFeedback({ ...res, copyBonus, finalScore, success });
+
     setPlayer(prev => {
-      const success = res?.score > 65;
-      const newClients = success ? [...prev.clients, { ...currentLead, id: Date.now(), monthly: 250, satisfaction: 80, equity: 0, nicheName: currentLead.nicheName }] : prev.clients;
+      const newClients = success ? [...prev.clients, { ...currentLead, id: Date.now(), monthly: currentLead.monthly || 250, satisfaction: 80, equity: 0, nicheName: currentLead.nicheName }] : prev.clients;
       return { ...prev, energy: prev.energy - 3, xp: prev.xp + (res?.xp_gained || 0), clients: newClients };
     });
-    addLog(`Resultado: ${res?.reaction || 'Ignorado'}.`);
+    addLog(`Resultado: ${res?.reaction || 'Ignorado'}${success ? ` — ¡Cliente cerrado: ${currentLead.nicheName}!` : '.'}`);
   };
 
   const startNewDay = () => {
@@ -251,10 +226,15 @@ export default function App() {
 
     const updatedClients = player.clients.map(c => {
       const newSat = Math.max(0, (c.satisfaction || 0) - lossBase);
-      if (c.equity > 0) dividends += (c.equity * 100) * (newSat / 100);
-      retainers += c.monthly;
       return { ...c, satisfaction: newSat };
     }).filter(c => c.satisfaction > 0);
+    // Solo pagan los clientes que siguen activos tras el cierre del día.
+    updatedClients.forEach(c => {
+      if (c.equity > 0) dividends += (c.equity * 100) * (c.satisfaction / 100);
+      retainers += c.monthly;
+    });
+    const churned = player.clients.length - updatedClients.length;
+    if (churned > 0) addLog(`Perdiste ${churned} cliente(s) por baja satisfacción.`);
 
     const saasRev = player.saasActive ? (player.saasUsers * (12 + saasSkill)) : 0;
     const acqRev = player.acquisitions * 2000;
@@ -373,7 +353,10 @@ export default function App() {
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-purple-600 animate-pulse"></div>
       <Brain size={60} className="text-blue-500 mb-6 drop-shadow-[0_0_15px_rgba(59,130,246,0.5)]" />
       <h1 className="text-7xl font-black mb-2 tracking-tighter uppercase italic leading-none text-center">Growth Tutor</h1>
-      <p className="text-slate-500 mb-12 uppercase font-black tracking-[0.5em] text-[10px] text-center">Protocolo Logos. Selecciona tu primer Campo de Batalla.</p>
+      <p className="text-slate-500 mb-8 uppercase font-black tracking-[0.5em] text-[10px] text-center">Protocolo Logos. Selecciona tu primer Campo de Batalla.</p>
+      <button onClick={() => setView('analyzer')} className="mb-10 px-8 py-4 rounded-full border border-amber-500/40 bg-amber-500/10 text-amber-400 hover:bg-amber-500 hover:text-black transition-all font-black uppercase text-[10px] tracking-[0.3em] flex items-center gap-3">
+        <Wand2 size={16} /> ¿Tienes un negocio real? Analízalo
+      </button>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-6xl w-full">
         {NICHES.map(n => (
           <button key={n.id} onClick={() => { setPlayer({...player, niche: n, tutorialFinished: false}); setView('dashboard'); setTutorialStep(0); }} className="group p-8 bg-slate-900/50 border border-slate-800 rounded-[3rem] hover:border-blue-500 transition-all text-left backdrop-blur-md">
@@ -417,7 +400,7 @@ export default function App() {
       {view === 'dashboard' && (
         <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard id="stats" icon={<Zap />} label="Energía" value={`${player.energy}/10`} color="yellow" />
+            <StatCard id="stats" icon={<Zap />} label="Energía" value={`${player.energy}/${player.maxEnergy}`} color="yellow" />
             <StatCard icon={<DollarSign />} label="Capital" value={`$${Math.floor(player.money)}`} color="green" />
             <StatCard icon={<Brain />} label="Autoridad" value={Math.floor(player.xp)} color="blue" />
             <StatCard icon={<Trophy />} label="Día" value={player.day} color="purple" />
@@ -438,15 +421,16 @@ export default function App() {
                     </div>
                   ))}
                 </div>
-                {player.energy < 2 && (
+                {player.energy < 3 && (
                   <button id="coffee" onClick={startNewDay} className="mt-8 w-full p-8 bg-blue-600 hover:bg-blue-500 text-white rounded-[2.5rem] font-black flex items-center justify-center gap-5 shadow-2xl shadow-blue-900/40 uppercase tracking-[0.4em] text-xs">
                     <Coffee size={24} /> Cerrar Ciclo Diario
                   </button>
                 )}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                 <NavBtn id="sales" icon={<Send />} label="Sales" onClick={generateNewLead} disabled={player.energy < 3} color="blue" />
+                <NavBtn id="analyzer" icon={<Wand2 />} label="Analizar" onClick={() => setView('analyzer')} color="gold" />
                 <NavBtn icon={<Settings />} label="Skills" onClick={() => setView('skills')} color="purple" />
                 <NavBtn id="holding" icon={<Briefcase />} label="Holding" onClick={() => setView('workstation')} badge={player.clients.length} color="green" />
                 <NavBtn icon={<UserPlus />} label="Team" onClick={() => setView('staff')} color="yellow" />
@@ -479,11 +463,15 @@ export default function App() {
         </div>
       )}
 
+      {view === 'analyzer' && (
+        <AnalyzerView onBack={() => setView(player.niche ? 'dashboard' : 'onboarding')} onPractice={practiceAnalyzedLead} />
+      )}
+
       {view === 'terminal' && (
         <div className="max-w-2xl mx-auto space-y-8 animate-in slide-in-from-bottom duration-700">
           <div className="flex justify-between items-center">
-            <button onClick={() => { setView('dashboard'); setAiFeedback(null); setOptimizedProposal(null); }} className="text-slate-600 hover:text-white font-black text-[10px] uppercase tracking-[0.4em] flex items-center gap-3">
-              <ChevronRight className="rotate-180" size={20}/> Abortar
+            <button onClick={leaveTerminal} className="text-slate-600 hover:text-white font-black text-[10px] uppercase tracking-[0.4em] flex items-center gap-3">
+              <ChevronRight className="rotate-180" size={20}/> {currentLead?.fromAnalysis ? 'Volver al análisis' : 'Abortar'}
             </button>
             <div className="px-6 py-2 bg-blue-600/10 rounded-full border border-blue-500/20 text-blue-500 text-[10px] font-black uppercase tracking-[0.5em] shadow-lg">Sales Simulation</div>
           </div>
@@ -517,27 +505,42 @@ export default function App() {
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     {FRAMEWORKS.map(f => (
-                      <button key={f.id} onClick={() => setSelectedFramework(f.id)} className={`p-4 rounded-3xl border transition-all text-left ${selectedFramework === f.id ? 'bg-blue-600 border-blue-500 text-white' : 'bg-black/40 border-slate-800 text-slate-500 hover:border-blue-500'}`}><p className="font-black text-xs">{f.name}</p></button>
+                      <button key={f.id} onClick={() => setSelectedFramework(f.id)} title={f.desc} className={`p-4 rounded-3xl border transition-all text-left ${selectedFramework === f.id ? 'bg-blue-600 border-blue-500 text-white' : 'bg-black/40 border-slate-800 text-slate-500 hover:border-blue-500'}`}>
+                        <p className="font-black text-xs">{f.name}{currentLead?.brief?.framework_recomendado === f.id && ' ★'}</p>
+                      </button>
                     ))}
                   </div>
+                  <p className="text-[11px] text-slate-500 ml-2">{FRAMEWORKS.find(f => f.id === selectedFramework)?.desc}{currentLead?.brief?.framework_recomendado && ' · ★ = recomendado por el analizador'}</p>
                 </div>
-                <textarea className="w-full bg-black border border-slate-800 rounded-[3rem] p-10 text-lg h-60 focus:border-blue-500 outline-none transition-all placeholder:text-slate-900 resize-none shadow-2xl text-white font-medium" placeholder="Escribe tu propuesta..." value={outreachMsg} onChange={e => setOutreachMsg(e.target.value)} />
-                <button disabled={isTyping || !outreachMsg.trim()} onClick={handleOutreach} className="w-full bg-blue-600 hover:bg-blue-500 p-8 rounded-[2.5rem] font-black text-white transition-all flex items-center justify-center gap-5 text-sm tracking-[0.5em] shadow-[0_20px_50px_rgba(59,130,246,0.3)]">
-                  {isTyping ? <RefreshCw className="animate-spin" size={28}/> : <><Send size={28}/> LANZAR PROPUESTA (-3⚡)</>}
+                <textarea className="w-full bg-black border border-slate-800 rounded-[3rem] p-10 text-lg h-60 focus:border-blue-500 outline-none transition-all placeholder:text-slate-900 resize-none shadow-2xl text-white font-medium" placeholder={FRAMEWORK_PLACEHOLDERS[selectedFramework] || 'Escribe tu propuesta...'} value={outreachMsg} onChange={e => setOutreachMsg(e.target.value)} />
+                {currentLead?.brief?.objeciones?.length > 0 && (
+                  <div className="p-6 rounded-[2rem] bg-amber-500/5 border border-amber-500/20 text-sm text-amber-200/80 space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-400 mb-2">Objeciones que probablemente escucharás</p>
+                    {currentLead.brief.objeciones.map((o, i) => <p key={i}>“{o}”</p>)}
+                  </div>
+                )}
+                <button disabled={isTyping || !outreachMsg.trim() || player.energy < 3} onClick={handleOutreach} className="w-full bg-blue-600 hover:bg-blue-500 p-8 rounded-[2.5rem] font-black text-white transition-all flex items-center justify-center gap-5 text-sm tracking-[0.5em] shadow-[0_20px_50px_rgba(59,130,246,0.3)]">
+                  {isTyping ? <RefreshCw className="animate-spin" size={28}/> : player.energy < 3 ? 'SIN ENERGÍA: CIERRA EL CICLO' : <><Send size={28}/> LANZAR PROPUESTA (-3⚡)</>}
                 </button>
               </div>
             ) : (
               <div className="space-y-8 animate-in zoom-in-95 duration-500">
-                <div className={`p-12 rounded-[4rem] border ${aiFeedback.score > 60 ? 'bg-green-500/5 border-green-500/20 shadow-[0_0_50px_rgba(34,197,94,0.1)]' : 'bg-red-500/5 border-red-500/20'}`}>
-                  <div className="flex justify-between items-center mb-10">
+                <div className={`p-12 rounded-[4rem] border ${aiFeedback.success ? 'bg-green-500/5 border-green-500/20 shadow-[0_0_50px_rgba(34,197,94,0.1)]' : 'bg-red-500/5 border-red-500/20'}`}>
+                  <div className="flex justify-between items-center mb-4">
                     <h3 className="font-black text-white text-3xl uppercase italic tracking-tighter leading-none">Análisis Mentor Logos</h3>
-                    <div className="bg-white text-black px-8 py-3 rounded-full font-black text-4xl shadow-xl">{aiFeedback.score}%</div>
+                    <div className="bg-white text-black px-8 py-3 rounded-full font-black text-4xl shadow-xl">{aiFeedback.finalScore ?? aiFeedback.score}%</div>
                   </div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-10 text-slate-500">
+                    {aiFeedback.reaction} · {aiFeedback.success ? <span className="text-green-400">Cliente cerrado</span> : <span className="text-red-400">Necesitas {SUCCESS_THRESHOLD}% para cerrar</span>}
+                    {aiFeedback.copyBonus > 0 && ` · base ${aiFeedback.score}% + ${aiFeedback.copyBonus} Copywriting Pro`}
+                    {aiFeedback.origin === 'demo' && ' · evaluación local'}
+                  </p>
                   <div className="bg-black/80 p-10 rounded-[3rem] mb-10 border border-white/5 italic text-slate-300 text-xl leading-relaxed shadow-2xl">"{aiFeedback.client_reply}"</div>
                   <div className="text-sm text-slate-500 font-medium leading-relaxed mb-10 border-l-4 border-blue-500 pl-10"><span className="text-blue-400 font-black uppercase tracking-[0.4em] block mb-4 text-[10px]">Feedback:</span> {aiFeedback.feedback}</div>
+                  <FeedbackDetails feedback={aiFeedback} />
                   {!optimizedProposal ? <button onClick={fetchOptimizedProposal} disabled={isOptimizing} className="w-full py-6 bg-slate-800 border border-slate-700 rounded-3xl text-white font-black text-[10px] uppercase tracking-[0.4em] flex items-center justify-center gap-4 hover:bg-slate-700 transition-all shadow-xl">{isOptimizing ? <RefreshCw className="animate-spin" size={20}/> : <><Sparkles size={20} className="text-yellow-400" /> Ver Propuesta de Titán</>}</button> : <div className="mt-6 p-10 bg-amber-500/5 border border-amber-500/20 rounded-[3rem] text-amber-100 text-base italic whitespace-pre-wrap shadow-2xl leading-relaxed animate-in slide-in-from-top-4"><p className="text-[10px] text-amber-500 font-black uppercase mb-6 tracking-[0.5em]">Optimización de Magnate:</p>{optimizedProposal}</div>}
                 </div>
-                <button onClick={() => { setView('dashboard'); setAiFeedback(null); setOptimizedProposal(null); }} className="w-full bg-white text-black p-8 rounded-[2.5rem] font-black uppercase tracking-[0.6em] hover:bg-slate-200 transition-all text-xs text-center">Avanzar</button>
+                <button onClick={leaveTerminal} className="w-full bg-white text-black p-8 rounded-[2.5rem] font-black uppercase tracking-[0.6em] hover:bg-slate-200 transition-all text-xs text-center">Avanzar</button>
               </div>
             )}
           </div>
@@ -564,7 +567,7 @@ export default function App() {
                     <div className="w-full max-w-lg bg-slate-800 h-4 rounded-full overflow-hidden shadow-inner border border-white/5">
                       <div className={`h-full transition-all duration-1000 ${c.satisfaction > 75 ? 'bg-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.8)]' : 'bg-red-500'}`} style={{ width: `${c.satisfaction}%` }} />
                     </div>
-                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Satis: {Math.round(c.satisfaction)}% // Cashflow: ${c.equity > 0 ? Math.floor(c.equity * 100 * (c.satisfaction/100)) : 250}</p>
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest">Satis: {Math.round(c.satisfaction)}% // Cashflow: ${Math.floor(c.monthly + (c.equity > 0 ? c.equity * 100 * (c.satisfaction/100) : 0))}</p>
                   </div>
                 </div>
                 <div className="flex flex-col gap-4 w-full lg:w-auto">
@@ -626,7 +629,7 @@ export default function App() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             <div className="bg-slate-900 border border-slate-800 rounded-[4rem] p-12 space-y-10 shadow-3xl group">
               <div className="flex items-center gap-6"><div className="p-6 bg-blue-600/10 rounded-[2.2rem] text-blue-500 border border-blue-500/20"><Rocket size={40}/></div><h2 className="text-5xl font-black uppercase italic tracking-tighter leading-none">SaaS Division</h2></div>
-              {!player.saasActive ? <button onClick={launchSaaS} disabled={player.money < 10000} className="w-full p-8 bg-blue-600 hover:bg-blue-500 rounded-[2.5rem] font-black uppercase tracking-[0.4em] text-xs transition-all shadow-2xl disabled:opacity-20">LANZAR SOFTWARE ($10,000)</button> : <div className="grid grid-cols-2 gap-6"><div className="p-8 bg-black/60 rounded-[2.5rem] border border-white/5 shadow-inner"><p className="text-[10px] text-slate-500 font-black uppercase mb-2 tracking-widest leading-none">Users Activos</p><p className="text-4xl font-black text-blue-400 italic">{player.saasUsers}</p></div><div className="p-8 bg-black/60 rounded-[2.5rem] border border-white/5 shadow-inner"><p className="text-[10px] text-slate-500 font-black uppercase mb-2 tracking-widest leading-none">Daily Net</p><p className="text-4xl font-black text-green-500 italic">${player.saasUsers * 12}</p></div></div>}
+              {!player.saasActive ? <button onClick={launchSaaS} disabled={player.money < 10000} className="w-full p-8 bg-blue-600 hover:bg-blue-500 rounded-[2.5rem] font-black uppercase tracking-[0.4em] text-xs transition-all shadow-2xl disabled:opacity-20">LANZAR SOFTWARE ($10,000)</button> : <div className="grid grid-cols-2 gap-6"><div className="p-8 bg-black/60 rounded-[2.5rem] border border-white/5 shadow-inner"><p className="text-[10px] text-slate-500 font-black uppercase mb-2 tracking-widest leading-none">Users Activos</p><p className="text-4xl font-black text-blue-400 italic">{player.saasUsers}</p></div><div className="p-8 bg-black/60 rounded-[2.5rem] border border-white/5 shadow-inner"><p className="text-[10px] text-slate-500 font-black uppercase mb-2 tracking-widest leading-none">Daily Net</p><p className="text-4xl font-black text-green-500 italic">${player.saasUsers * (12 + (player.skills.find(s => s.id === 'saas_logic')?.level || 0))}</p></div></div>}
             </div>
             <div className="bg-slate-900 border border-slate-800 rounded-[4rem] p-12 space-y-10 shadow-3xl group">
               <div className="flex items-center gap-6"><div className="p-6 bg-purple-600/10 rounded-[2.2rem] text-purple-500 border border-purple-500/20"><Building2 size={40}/></div><h2 className="text-5xl font-black uppercase italic tracking-tighter leading-none">M&A Acquisition</h2></div>
