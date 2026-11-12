@@ -2,7 +2,7 @@
 // Rúbrica de docs/especialistas/03-copywriting.md §4 (+ story_score de 02-storytelling.md §4).
 // Si el proveedor de IA falla, un evaluador heurístico local da una nota coherente
 // (antes el fallback devolvía siempre 65 y el jugador nunca podía cerrar en modo offline).
-import { generateJSON, generateText } from '../lib/ai/index.js';
+import { generateJSON, generateText, DEFAULT_MODE } from '../lib/ai/index.js';
 import { FRAMEWORKS, FRAMEWORK_DEFINITIONS } from './constants.js';
 
 export const SUCCESS_THRESHOLD = 70;
@@ -108,7 +108,7 @@ function normalizeEvaluation(raw, fallback) {
   };
 }
 
-export async function evaluateProposal(message, lead, frameworkId, { mode = 'ia', copyLevel = 0 } = {}) {
+export async function evaluateProposal(message, lead, frameworkId, { mode = DEFAULT_MODE, copyLevel = 0 } = {}) {
   const fallback = localEvaluation(message, lead, frameworkId);
   if (mode === 'demo') return fallback;
   try {
@@ -124,7 +124,7 @@ export async function evaluateProposal(message, lead, frameworkId, { mode = 'ia'
   }
 }
 
-export async function optimizeProposal(message, lead, frameworkId, evaluation, { mode = 'ia' } = {}) {
+export async function optimizeProposal(message, lead, frameworkId, evaluation, { mode = DEFAULT_MODE } = {}) {
   const def = FRAMEWORK_DEFINITIONS[frameworkId];
   if (mode === 'demo') {
     return `Versión de referencia (modo demo, ${frameworkId.toUpperCase()}):\n\n${(def?.steps || [])

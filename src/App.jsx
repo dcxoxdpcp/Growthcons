@@ -149,7 +149,8 @@ export default function App() {
   const [objectionSession, setObjectionSession] = useState(null);
 
   useEffect(() => {
-    const handleError = (e) => { console.error("Error capturado:", e); setHasError(true); };
+    // Solo errores propios de la app: los "Script error." de scripts de terceros (sin e.error) se ignoran.
+    const handleError = (e) => { if (!e.error) return; console.error("Error capturado:", e); setHasError(true); };
     window.addEventListener('error', handleError);
     return () => window.removeEventListener('error', handleError);
   }, []);

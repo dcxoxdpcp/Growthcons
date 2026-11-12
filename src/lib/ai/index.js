@@ -18,6 +18,12 @@ export function getProvider(id = DEFAULT_PROVIDER) {
   return provider;
 }
 
+/** Modo por defecto: 'ia' o 'demo' (VITE_AI_MODE). La versión publicada como página usa 'demo'. */
+export const DEFAULT_MODE = import.meta.env?.VITE_AI_MODE === 'demo' ? 'demo' : 'ia';
+
+/** Algunos entornos (páginas publicadas) bloquean las descargas de archivos. */
+export const DOWNLOADS_ENABLED = import.meta.env?.VITE_DISABLE_DOWNLOADS !== '1';
+
 export const providerLabel = () => getProvider().label;
 
 export const generateJSON = (opts) => getProvider().generateJSON(opts);

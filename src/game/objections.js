@@ -3,7 +3,7 @@
 // Cada respuesta del closer se puntúa 0-25 por etapa (0-100 total) y modifica la "resistencia" del CEO.
 // El resultado (convence / sigue resistiendo / se va) se calcula aquí de forma determinista;
 // la IA solo aporta la puntuación cualitativa y las dos posibles réplicas del CEO.
-import { generateJSON } from '../lib/ai/index.js';
+import { generateJSON, DEFAULT_MODE } from '../lib/ai/index.js';
 
 export const STAGES = [
   { id: 'validar', label: 'Validar', tip: 'Empatiza sin darle la razón al miedo: "Tiene sentido que lo pienses..."' },
@@ -137,7 +137,7 @@ const transcript = (history) => history.map((m) => `${m.role === 'ceo' ? 'CEO' :
 
 const clamp25 = (n) => Math.max(0, Math.min(25, Math.round(Number(n) || 0)));
 
-export async function evaluateObjectionTurn({ lead, history, reply, objection, resistance, mode = 'ia' }) {
+export async function evaluateObjectionTurn({ lead, history, reply, objection, resistance, mode = DEFAULT_MODE }) {
   const fallback = localTurnEvaluation(reply, objection);
   if (mode === 'demo') return fallback;
   try {

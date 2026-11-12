@@ -7,7 +7,7 @@ import { SECTIONS } from './prompts.js';
 import { runAnalysis, generateSection, analysisToLead } from './analyzer.js';
 import { loadHistory, upsertAnalysis, deleteAnalysis } from './history.js';
 import { analysisToMarkdown, downloadText, copyToClipboard } from './exportMarkdown.js';
-import { providerLabel } from '../../lib/ai/index.js';
+import { providerLabel, DEFAULT_MODE, DOWNLOADS_ENABLED } from '../../lib/ai/index.js';
 
 const EXAMPLES = [
   'Panadería artesanal en Monterrey con 2 locales y 3k seguidores en Instagram',
@@ -382,7 +382,7 @@ const RENDERERS = { estrategia: EstrategiaSection, narrativa: NarrativaSection, 
 
 export default function AnalyzerView({ onBack, onPractice, onTrainObjections }) {
   const [description, setDescription] = useState('');
-  const [mode, setMode] = useState('ia');
+  const [mode, setMode] = useState(DEFAULT_MODE);
   const [analysis, setAnalysis] = useState(null);
   const [status, setStatus] = useState({});
   const [activeTab, setActiveTab] = useState('estrategia');
@@ -537,7 +537,7 @@ export default function AnalyzerView({ onBack, onPractice, onTrainObjections }) 
                 <button onClick={() => onPractice(analysisToLead(analysis))} disabled={!complete} className="flex-1 px-6 py-4 bg-white text-black rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-30"><Swords size={16} /> Practicar el cierre</button>
                 <button onClick={() => onTrainObjections(analysisToLead(analysis))} disabled={!complete} className="flex-1 px-6 py-4 bg-amber-500 text-black rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-30"><ShieldAlert size={16} /> Entrenar objeciones</button>
                 <button onClick={() => copyToClipboard(analysisToMarkdown(analysis))} disabled={!complete} className="flex-1 px-6 py-4 bg-slate-800 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-30"><Copy size={16} /> Copiar todo</button>
-                <button onClick={() => downloadText(`propuesta-${analysis.id}.md`, analysisToMarkdown(analysis))} disabled={!complete} className="flex-1 px-6 py-4 bg-slate-800 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-30"><Download size={16} /> Exportar .md</button>
+                {DOWNLOADS_ENABLED && <button onClick={() => downloadText(`propuesta-${analysis.id}.md`, analysisToMarkdown(analysis))} disabled={!complete} className="flex-1 px-6 py-4 bg-slate-800 rounded-[1.5rem] font-black text-[10px] uppercase tracking-[0.3em] flex items-center justify-center gap-2 disabled:opacity-30"><Download size={16} /> Exportar .md</button>}
               </div>
             </div>
           )}

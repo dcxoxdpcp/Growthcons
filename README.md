@@ -12,6 +12,10 @@ npm run dev
 
 Sin clave, el analizador y el evaluador usan el **modo demo**, con plantillas locales y una rúbrica heurística. La clave queda en el navegador, así que en producción hay que poner un proxy o backend delante.
 
+## Probar desde el teléfono
+
+`npm run build:artifact` empaqueta la app en un único HTML (`dist-artifact/growth-tutor.html`) que se puede publicar como página privada de claude.ai. Esa versión arranca en modo demo, porque la página bloquea las llamadas externas, y oculta "Exportar .md" porque bloquea las descargas; "Copiar todo" sigue funcionando.
+
 ## Cambiar de proveedor de IA
 
 Toda la app llama a la IA a través de `src/lib/ai/index.js`. Para usar otro modelo:
@@ -19,6 +23,8 @@ Toda la app llama a la IA a través de `src/lib/ai/index.js`. Para usar otro mod
 1. Crea `src/lib/ai/providers/<id>.js` que exporte `{ id, label, generateJSON, generateText }`.
 2. Regístralo en `PROVIDERS`.
 3. Selecciónalo con `VITE_AI_PROVIDER=<id>`.
+
+`VITE_AI_MODE=demo` hace que la app arranque en modo demo.
 
 ## Documentación
 
