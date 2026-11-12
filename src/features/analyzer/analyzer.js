@@ -57,7 +57,7 @@ export async function generateSection(sectionId, description, { estrategia, mode
   const section = SECTIONS.find((s) => s.id === sectionId);
   try {
     const { system, user } = buildPrompt(sectionId, description, estrategia, instruction);
-    const raw = await generateJSON({ system, user, temperature: section?.temperature ?? 0.7 });
+    const raw = await generateJSON({ system, user, temperature: section?.temperature ?? 0.7, tier: 'default' });
     const payload = sectionId === 'estrategia' ? raw : raw?.[sectionId] ?? raw;
     return { data: postProcess(sectionId, deepFill(payload, fallback)), origin: 'ia' };
   } catch (error) {

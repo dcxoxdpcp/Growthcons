@@ -1,7 +1,7 @@
 // Empaqueta la app en un único HTML autocontenido (JS y CSS en línea) para publicarla
 // como página privada de claude.ai (Artifact), que se puede abrir desde el teléfono.
-// En ese entorno las llamadas externas y las descargas están bloqueadas, así que se compila
-// en modo demo y sin el botón de exportar. Uso: npm run build:artifact
+// En ese entorno las llamadas externas y las descargas están bloqueadas: la IA es Claude a través
+// del visor (capacidad "sample") y no hay botón de exportar. Uso: npm run build:artifact
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync, readdirSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -9,7 +9,8 @@ import { join } from 'node:path';
 const outDir = 'dist-artifact';
 execSync(`npx vite build --outDir ${outDir}/build --emptyOutDir`, {
   stdio: 'inherit',
-  env: { ...process.env, VITE_AI_MODE: 'demo', VITE_DISABLE_DOWNLOADS: '1' },
+  // Claude vía la capacidad "sample" del visor (hay que publicar con capabilities: {sample: {}}).
+  env: { ...process.env, VITE_AI_PROVIDER: 'claude-artifact', VITE_DISABLE_DOWNLOADS: '1' },
 });
 
 const assets = join(outDir, 'build', 'assets');

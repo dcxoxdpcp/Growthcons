@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ChevronRight, Sparkles, RefreshCw, Copy, Check, Download, History, Trash2, Swords,
   Target, Brain, MessageSquare, Megaphone, AlertCircle, FlaskConical, Wand2, ShieldAlert,
@@ -7,7 +7,7 @@ import { SECTIONS } from './prompts.js';
 import { runAnalysis, generateSection, analysisToLead } from './analyzer.js';
 import { loadHistory, upsertAnalysis, deleteAnalysis } from './history.js';
 import { analysisToMarkdown, downloadText, copyToClipboard } from './exportMarkdown.js';
-import { providerLabel, DEFAULT_MODE, DOWNLOADS_ENABLED } from '../../lib/ai/index.js';
+import { providerLabel, DEFAULT_MODE, DOWNLOADS_ENABLED, isAIAvailable } from '../../lib/ai/index.js';
 
 const EXAMPLES = [
   'Panadería artesanal en Monterrey con 2 locales y 3k seguidores en Instagram',
@@ -391,6 +391,27 @@ export default function AnalyzerView({ onBack, onPractice, onTrainObjections }) 
   const [running, setRunning] = useState(false);
   const [notice, setNotice] = useState(null);
   const [instruction, setInstruction] = useState('');
+  const [aiAvailable, setAiAvailable] = useState(true);
+  const [elapsed, setElapsed] = useState(0);
+
+  // Si el proveedor no puede funcionar en este entorno, el botón IA se desactiva y se usa el modo demo.
+  useEffect(() => {
+    let alive = true;
+    isAIAvailable().then((ok) => {
+      if (!alive || ok) return;
+      setAiAvailable(false);
+      setMode('demo');
+    });
+    return () => { alive = false; };
+  }, []);
+
+  // Cronómetro visible mientras la IA trabaja (cada sección puede tardar hasta 1-2 minutos).
+  useEffect(() => {
+    if (!running) return undefined;
+    setElapsed(0);
+    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [running]);
 
   // Ref con la última versión del análisis: evita que dos regeneraciones simultáneas se pisen.
   const analysisRef = useRef(null);
@@ -414,7 +435,7 @@ export default function AnalyzerView({ onBack, onPractice, onTrainObjections }) 
         if (id === 'estrategia') current.title = r.data.diagnostico.subnicho || current.title;
         updateAnalysis(current);
         setStatus((prev) => ({ ...prev, [id]: r.origin }));
-        if (r.error) setNotice('No se pudo contactar al modelo de IA; algunas secciones se generaron con el motor local (modo demo).');
+        if (r.error) setNotice(`La IA no respondió (${r.error}). Las secciones afectadas se generaron con el motor local (modo demo).`);
       },
     });
     if (invalid) {
@@ -440,7 +461,7 @@ export default function AnalyzerView({ onBack, onPractice, onTrainObjections }) 
     updateAnalysis(next);
     persist(next);
     setStatus((prev) => ({ ...prev, [sectionId]: r.origin }));
-    if (r.error) setNotice('No se pudo contactar al modelo de IA; la sección se regeneró con el motor local.');
+    if (r.error) setNotice(`La IA no respondió (${r.error}). La sección se regeneró con el motor local (modo demo).`);
     setInstruction('');
   };
 
@@ -469,7 +490,7 @@ export default function AnalyzerView({ onBack, onPractice, onTrainObjections }) 
             <History size={14} /> Historial ({history.length})
           </button>
           <div className="flex rounded-full border border-slate-800 p-1 text-[10px] font-black uppercase tracking-widest">
-            <button onClick={() => setMode('ia')} className={`px-4 py-1.5 rounded-full flex items-center gap-1.5 ${mode === 'ia' ? 'bg-blue-600 text-white' : 'text-slate-500'}`} title={providerLabel()}><Sparkles size={12} /> IA</button>
+            <button onClick={() => setMode('ia')} disabled={!aiAvailable} className={`px-4 py-1.5 rounded-full flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed ${mode === 'ia' ? 'bg-blue-600 text-white' : 'text-slate-500'}`} title={aiAvailable ? `Generar con ${providerLabel()}` : 'La IA no está disponible en este entorno'}><Sparkles size={12} /> {providerLabel()}</button>
             <button onClick={() => setMode('demo')} className={`px-4 py-1.5 rounded-full flex items-center gap-1.5 ${mode === 'demo' ? 'bg-amber-500 text-black' : 'text-slate-500'}`} title="Plantillas locales, sin llamadas a la IA"><FlaskConical size={12} /> Demo</button>
           </div>
         </div>
@@ -508,12 +529,14 @@ export default function AnalyzerView({ onBack, onPractice, onTrainObjections }) 
           ))}
         </div>
         <p className="text-[11px] text-slate-500">Cuanto más detalle, mejor: qué vende, a quién, dónde, tamaño, redes y seguidores, ticket y qué le duele al dueño.</p>
+        {mode === 'ia' && <p className="text-[11px] text-blue-300/80">Se genera con {providerLabel()}. La primera vez se te pedirá permiso para que esta página use Claude con tu cuenta. El análisis completo (4 especialistas) suele tardar entre 1 y 3 minutos.</p>}
+        {!aiAvailable && <p className="text-[11px] text-amber-400/80">La IA no está disponible en este entorno; se usa el modo demo con plantillas locales.</p>}
         <button
           onClick={analyze}
           disabled={running || description.trim().length < 15}
           className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-30 p-6 rounded-[2rem] font-black text-white flex items-center justify-center gap-4 text-xs tracking-[0.4em] uppercase shadow-[0_20px_50px_rgba(59,130,246,0.3)]"
         >
-          {running ? <><RefreshCw className="animate-spin" size={20} /> Analizando...</> : <><Wand2 size={20} /> Generar propuesta {mode === 'demo' && '(demo)'}</>}
+          {running ? <><RefreshCw className="animate-spin" size={20} /> Analizando... {elapsed}s</> : <><Wand2 size={20} /> Generar propuesta {mode === 'demo' && '(demo)'}</>}
         </button>
         {notice && <div className="flex gap-3 items-start p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-amber-300 text-sm"><AlertCircle size={18} className="shrink-0 mt-0.5" /> {notice}</div>}
       </div>

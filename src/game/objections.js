@@ -145,6 +145,7 @@ export async function evaluateObjectionTurn({ lead, history, reply, objection, r
       system: systemPrompt(lead, resistance),
       user: `CONVERSACIÓN HASTA AHORA:\n${transcript(history)}\n\nRESPUESTA DEL CLOSER A EVALUAR:\n"""${reply}"""`,
       temperature: 0.4,
+      tier: 'quick', // conversación: respuesta rápida
     });
     const etapas = Object.fromEntries(
       STAGES.map((s) => [s.id, { puntos: clamp25(raw?.etapas?.[s.id]?.puntos), comentario: raw?.etapas?.[s.id]?.comentario || fallback.etapas[s.id].comentario }]),
@@ -160,7 +161,7 @@ export async function evaluateObjectionTurn({ lead, history, reply, objection, r
     };
   } catch (e) {
     console.warn('[Objeciones] usando evaluación local', e);
-    return { ...fallback, feedback: `${fallback.feedback} (No se pudo contactar al modelo de IA.)` };
+    return { ...fallback, feedback: `${fallback.feedback} (La IA no respondió: ${e.message})` };
   }
 }
 
